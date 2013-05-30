@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.bugsense.trace.BugSenseHandler;
 import com.google.android.apps.dashclock.api.DashClockExtension;
@@ -108,6 +109,7 @@ public class HangoutsWidget extends DashClockExtension {
 
 				} else {
 					Log.w("HangoutsWidget", "Sqlite executable doesn't seem to be installed");
+					BugSenseHandler.sendException(new Exception("Sqlite executable doesn't seem to be installed"));
 				}	
 
 			} else {
@@ -116,6 +118,7 @@ public class HangoutsWidget extends DashClockExtension {
 
 		} else {
 			Log.d("HangoutsWidget", "The device is not rooted");
+			Toast.makeText(getApplicationContext(), R.string.unrooted_error, Toast.LENGTH_LONG).show();
 		}
 
 		Log.d("HangoutsWidget", "Publishing update");
