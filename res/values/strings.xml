@@ -4,5 +4,6 @@
     <string name="extension_name">Hangouts</string>
     <string name="application_name">Dashclock Hangouts Extension</string>
     <string name="extension_info">Displays information about your unread Hangouts messages.</string>
+    <string name="database_missing">The Hangouts extension for Dashclock was unable to find the database. Please ensure that Hangouts is installed.</string>
 
 </resources>
