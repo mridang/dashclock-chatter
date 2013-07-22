@@ -1,7 +1,6 @@
 package com.mridang.hangouts;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
+import java.util.ArrayList;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
@@ -24,6 +23,71 @@ public class HangoutsWidget extends DashClockExtension {
 
 	/* This is the launch intent using for starting the Hangouts application */
 	private Intent ittApplication;
+	/* This is the number of possible Hangouts accounts that the user has */
+	private ArrayList<String> lstDatabases = new ArrayList<String>();
+
+	/*
+	 * @see com.google.android.apps.dashclock.api.DashClockExtension#onInitialize(boolean)
+	 */
+	@Override
+	protected void onInitialize(boolean booReconnect) {
+
+		setUpdateWhenScreenOn(true);
+		
+		if (lstDatabases.isEmpty()) {
+
+			if (RootTools.isRootAvailable() && RootTools.isAccessGiven()) {
+
+				Log.d("HangoutsWidget", "Checking if Hangouts is installed and getting the intent");
+				try {
+
+					PackageManager pkgManager = getPackageManager();
+					ittApplication = pkgManager.getLaunchIntentForPackage("com.google.android.talk");
+					ittApplication.addCategory(Intent.CATEGORY_LAUNCHER);
+
+				} catch (Exception e) {
+					e.printStackTrace();
+					return;
+				}
+
+				Log.d("HangoutsWidget", "Fetching all the Hangouts databases");
+				try {
+
+					for (Integer intNumber = 0; intNumber < 3; intNumber++) {
+
+						if (RootTools.exists("/data/data/com.google.android.talk/databases/babel" + intNumber + ".db")) {
+
+							lstDatabases.add("/data/data/com.google.android.talk/databases/babel" + intNumber + ".db");
+
+						}
+
+					}
+
+					Log.d("HangoutsWidget", "Found " + lstDatabases.size() + (lstDatabases.size() > 1 ? " databases" : " database"));
+					if (lstDatabases.size() == 0) {
+
+						Log.e("HangoutsWidget", "Something is wrong. No databases found.");
+						Toast.makeText(getApplicationContext(), R.string.database_missing, Toast.LENGTH_LONG).show();	
+
+					}
+
+				} catch (Exception e) {
+					e.printStackTrace();
+					return;
+				}
+
+			} else {
+
+				Log.w("HangoutsWidget", "The device is not rooted or root access was denied");
+				Toast.makeText(getApplicationContext(), R.string.unrooted_error, Toast.LENGTH_LONG).show();
+				
+			}
+
+		}
+
+		super.onInitialize(booReconnect);		
+
+	}
 
 	/*
 	 * @see com.google.android.apps.dashclock.api.DashClockExtension#onCreate()
@@ -33,16 +97,6 @@ public class HangoutsWidget extends DashClockExtension {
 		super.onCreate();
 		Log.d("HangoutsWidget", "Created");
 		BugSenseHandler.initAndStartSession(this, "3279a667");
-
-		try {
-
-			PackageManager pkgManager = getPackageManager();
-			ittApplication = pkgManager.getLaunchIntentForPackage("com.google.android.talk");
-			ittApplication.addCategory(Intent.CATEGORY_LAUNCHER);
-
-		} catch (Exception e) {
-			BugSenseHandler.sendException(e);
-		}
 
 	}
 
@@ -54,34 +108,49 @@ public class HangoutsWidget extends DashClockExtension {
 	@Override
 	protected void onUpdateData(int arg0) {
 
-		setUpdateWhenScreenOn(true);
-
 		Log.d("HangoutsWidget", "Checking for unread Hangouts messages");
 		final ExtensionData edtInformation = new ExtensionData();
 		edtInformation.visible(false);
 
-		Log.d("HangoutsWidget", "Checking if the device is rooted and access has been granted");	
-		if (RootTools.isRootAvailable() && RootTools.isAccessGiven()) {
+		try {
 
-			try {
+			Log.d("HangoutsWidget", "Reading unread messages from the databases");
+			for (String strDatabase : lstDatabases) {
 
-				Log.d("HangoutsWidget", "Checking if necessary libraries are installed");
-				if (!RootTools.exists("/system/lib/libncurses.so")) {
+				BugSenseHandler.clearCrashExtraData();
 
-					Log.d("HangoutsWidget", "Installing the libraries");
-					RootTools.installBinary(getApplicationContext(), R.raw.libncurses, "libncurses.so", "644");
-					RootTools.copyFile("/data/data/com.mridang.hangouts/files/libncurses.so", "/system/lib/libncurses.so", true, true);
-					Log.d("HangoutsWidget", "Installed");
+				Command cmdSystem = new Command(0, "sqlite3 " + strDatabase + " \"SELECT author_full_name, COUNT(*) FROM message_notifications_view WHERE notified_for_failure = 0 AND type = 2 GROUP BY author_full_name;\"") {
 
-				}
+					@Override
+					public void output(int id, String strLine) {
 
-				Log.d("HangoutsWidget", "Checking if the contacts database exists");
-				if (RootTools.exists("/data/data/com.google.android.talk/databases/babel1.db")) {
+						Log.v("HangoutsWidget", strLine);
+						try {
 
-					BugSenseHandler.clearCrashExtraData();
+							BugSenseHandler.addCrashExtraData("System " + Integer.toString(BugSenseHandler.getCrashExtraData().size()), strLine);
 
-					Log.d("HangoutsWidget", "Reading unread messages from the databases");
-					Command cmdSystem = new Command(0, "sqlite3 /data/data/com.google.android.talk/databases/babel1.db \"SELECT author_full_name, COUNT(*) FROM message_notifications_view WHERE notified_for_failure = 0 AND type = 2;\"") {
+							if (!strLine.trim().isEmpty()) {
+
+								edtInformation.status(Integer.toString((edtInformation.status() == null ? 0 : Integer.parseInt(edtInformation.status())) + Integer.parseInt(strLine.split("\\|")[1]))); 
+
+								if (edtInformation.expandedBody() == null || !edtInformation.expandedBody().contains(strLine)) {
+									edtInformation.expandedBody((edtInformation.expandedBody() == null ? "" : edtInformation.expandedBody() + "\n") + strLine.split("\\|")[0]);
+								}
+
+							}
+
+						} catch (Exception e) {
+							setExitCode(-1);
+						}
+
+					}
+
+				};
+				RootTools.getShell(true).add(cmdSystem).waitForFinish();
+
+				if (cmdSystem.exitCode() == -1) {
+
+					Command cmdCustom = new Command(0, "/data/data/com.mridang.hangouts/files/sqlite3 " + strDatabase + " \"SELECT author_full_name FROM message_notifications_view WHERE notified_for_failure = 0 AND type = 2 GROUP BY author_full_name;\"") {
 
 						@Override
 						public void output(int id, String strLine) {
@@ -89,7 +158,7 @@ public class HangoutsWidget extends DashClockExtension {
 							Log.v("HangoutsWidget", strLine);
 							try {
 
-								BugSenseHandler.addCrashExtraData("System " + Integer.toString(BugSenseHandler.getCrashExtraData().size()), strLine);
+								BugSenseHandler.addCrashExtraData("Custom " + Integer.toString(BugSenseHandler.getCrashExtraData().size()), strLine);
 
 								if (!strLine.trim().isEmpty()) {
 
@@ -108,100 +177,56 @@ public class HangoutsWidget extends DashClockExtension {
 						}
 
 					};
-					RootTools.getShell(true).add(cmdSystem).waitForFinish();
+					RootTools.getShell(true).add(cmdCustom).waitForFinish();
 
 					if (cmdSystem.exitCode() == -1) {
 
-						Command cmdCustom = new Command(0, "/data/data/com.mridang.hangouts/files/sqlite3 /data/data/com.google.android.talk/databases/babel1.db \"SELECT author_full_name FROM message_notifications_view WHERE notified_for_failure = 0 AND type = 2;\"") {
+						Command cmdInstalled = new Command(1, "sqlite3 -version") {
 
 							@Override
-							public void output(int id, String strLine) {
-
-								Log.v("HangoutsWidget", strLine);
-								try {
-
-									BugSenseHandler.addCrashExtraData("Custom " + Integer.toString(BugSenseHandler.getCrashExtraData().size()), strLine);
-
-									if (!strLine.trim().isEmpty()) {
-
-										edtInformation.status(Integer.toString((edtInformation.status() == null ? 0 : Integer.parseInt(edtInformation.status())) + Integer.parseInt(strLine.split("\\|")[1]))); 
-
-										if (edtInformation.expandedBody() == null || !edtInformation.expandedBody().contains(strLine)) {
-											edtInformation.expandedBody((edtInformation.expandedBody() == null ? "" : edtInformation.expandedBody() + "\n") + strLine.split("\\|")[0]);
-										}
-
-									}
-
-								} catch (Exception e) {
-									setExitCode(-1);
-								}
-
+							public void output(int arg0, String strLine) {
+								BugSenseHandler.addCrashExtraData("Installed", strLine);							
 							}
 
 						};
-						RootTools.getShell(true).add(cmdCustom).waitForFinish();
+						RootTools.getShell(true).add(cmdInstalled).waitForFinish();
 
-						if (cmdSystem.exitCode() == -1) {
+						RootTools.installBinary(getApplicationContext(), R.raw.sqlite3, "sqlite3", "755");
 
-							Command cmdInstalled = new Command(1, "sqlite3 -version") {
+						Command cmdPackaged = new Command(1, "/data/data/com.mridang.hangouts/files/sqlite3 -version") {
 
-								@Override
-								public void output(int arg0, String strLine) {
-									BugSenseHandler.addCrashExtraData("Installed", strLine);							
-								}
+							@Override
+							public void output(int arg0, String strLine) {
+								BugSenseHandler.addCrashExtraData("Packaged", strLine);							
+							}
 
-							};
-							RootTools.getShell(true).add(cmdInstalled).waitForFinish();
+						};
+						RootTools.getShell(true).add(cmdPackaged).waitForFinish();
 
-							RootTools.installBinary(getApplicationContext(), R.raw.sqlite3, "sqlite3", "755");
-
-							Command cmdPackaged = new Command(1, "/data/data/com.mridang.hangouts/files/sqlite3 -version") {
-
-								@Override
-								public void output(int arg0, String strLine) {
-									BugSenseHandler.addCrashExtraData("Packaged", strLine);							
-								}
-
-							};
-							RootTools.getShell(true).add(cmdPackaged).waitForFinish();
-
-							BugSenseHandler.sendException(new Exception("Error Parsing response"));
-							return;
-
-						}
+						BugSenseHandler.sendException(new Exception("Error Parsing response"));
+						return;
 
 					}
-					BugSenseHandler.clearCrashExtraData();
 
-					Integer intMessages = Integer.parseInt(edtInformation.status() == null ? "0" : edtInformation.status());
-					edtInformation.status(getResources().getQuantityString(R.plurals.message, intMessages, intMessages));
-					edtInformation.visible(intMessages > 0);
-					if (ittApplication != null)
-						edtInformation.clickIntent(ittApplication);
-					Log.d("HangoutsWidget", (edtInformation.expandedBody() == null ? 0 : edtInformation.expandedBody().split("\n").length) + " unread");		
+				}
 
-				} else {
-					Log.w("HangoutsWidget", "Contacts database doesn't exist");
-					Toast.makeText(getApplicationContext(), R.string.database_missing, Toast.LENGTH_LONG).show();
-				}	
+				BugSenseHandler.clearCrashExtraData();
 
-			} catch (InterruptedException e) {
-				Log.w("HangoutsWidget", "Command execution interrupted", e);
-			} catch (IOException e) {
-				Log.w("HangoutsWidget", "Input output error", e);
-			} catch (TimeoutException e) {
-				Log.w("HangoutsWidget", "Command timed out", e);
-			} catch (RootDeniedException e) {
-				Log.w("HangoutsWidget", "Root access denied", e);
-			} catch (Exception e) {
-				Log.e("HangoutsWidget", "Encountered an error", e);
-				BugSenseHandler.sendException(e);
-			}				
+			}
 
-		} else {
-			Log.w("HangoutsWidget", "The device is not rooted");
+			Integer intMessages = Integer.parseInt(edtInformation.status() == null ? "0" : edtInformation.status());
+			edtInformation.status(getResources().getQuantityString(R.plurals.message, intMessages, intMessages));
+			edtInformation.visible(intMessages > 0);
+			edtInformation.clickIntent(ittApplication);
+			Log.d("HangoutsWidget", (edtInformation.expandedBody() == null ? 0 : edtInformation.expandedBody().split("\n").length) + " unread");
+
+		} catch (RootDeniedException e) {
+			Log.w("HangoutsWidget", "Root access was denied to the extension");
 			Toast.makeText(getApplicationContext(), R.string.unrooted_error, Toast.LENGTH_LONG).show();
-		}
+		} catch (Exception e) {
+			Log.e("HangoutsWidget", "Encountered an error", e);
+			BugSenseHandler.sendException(e);
+		}				
 
 		Log.d("HangoutsWidget", "Publishing update");
 		edtInformation.icon(R.drawable.ic_dashclock);

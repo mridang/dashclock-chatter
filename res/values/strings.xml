@@ -1,9 +1,9 @@
 <resources>
 
-    <string name="unrooted_error">The Hangouts extension for Dashclock requires a rooted device to work. Please uninstall the extension or root your device.</string>
+    <string name="unrooted_error">The Hangouts extension for Dashclock requires a rooted device and root access to work. Uninstall the extension, or, root your device and grant root access permanently.</string>
     <string name="extension_name">Hangouts</string>
     <string name="application_name">Dashclock Hangouts Extension</string>
     <string name="extension_info">Displays information about your unread Hangouts messages.</string>
-    <string name="database_missing">The Hangouts extension for Dashclock was unable to find the database. Please ensure that Hangouts is installed.</string>
+    <string name="database_missing">The Hangouts extension for Dashclock was unable to find any message databases. Contact the developer in order to resolve this issue.</string>
 
 </resources>
