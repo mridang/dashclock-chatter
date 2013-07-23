@@ -1,5 +1,6 @@
 package com.mridang.hangouts;
 
+import java.io.File;
 import java.util.ArrayList;
 
 import android.annotation.SuppressLint;
@@ -53,20 +54,14 @@ public class HangoutsWidget extends DashClockExtension {
 				try {
 
 					Log.d("HangoutsWidget", "Checking and extracting libraries");
-					if (!RootTools.exists("/data/data/com.mridang.hangouts/files/libncurses.so")) {
-
-						RootTools.installBinary(getApplicationContext(), R.raw.libncurses, "libncurses.so", "644");
-						Log.d("HangoutsWidget", "Installed libncurses");
-
-					}
+					new File(getApplicationContext().getFilesDir(), "libncurses.so").delete();
+					RootTools.installBinary(getApplicationContext(), R.raw.libncurses, "libncurses.so", "755");
+					Log.d("HangoutsWidget", "Installed libncurses");
 
 					Log.d("HangoutsWidget", "Checking and extracting binaries");
-					if (!RootTools.exists("/data/data/com.mridang.hangouts/files/sqlite3")) {
-
-						RootTools.installBinary(getApplicationContext(), R.raw.libncurses, "sqlite3", "644");
-						Log.d("HangoutsWidget", "Installed sqlite3");
-
-					}
+					new File(getApplicationContext().getFilesDir(), "sqlite3").delete();
+					RootTools.installBinary(getApplicationContext(), R.raw.sqlite3, "sqlite3", "755");
+					Log.d("HangoutsWidget", "Installed sqlite3");
 
 				} catch (Exception e) {
 					Log.e("HangoutsWidget", "Error extracting libraries and binairies", e);
