@@ -33,7 +33,7 @@ public class HangoutsWidget extends DashClockExtension {
 	protected void onInitialize(boolean booReconnect) {
 
 		setUpdateWhenScreenOn(true);
-		
+
 		if (lstDatabases.isEmpty()) {
 
 			if (RootTools.isRootAvailable() && RootTools.isAccessGiven()) {
@@ -46,7 +46,30 @@ public class HangoutsWidget extends DashClockExtension {
 					ittApplication.addCategory(Intent.CATEGORY_LAUNCHER);
 
 				} catch (Exception e) {
-					e.printStackTrace();
+					Log.e("HangoutsWidget", "Error getting the launch intent for Hangouts", e);
+					return;
+				}
+
+				try {
+
+					Log.d("HangoutsWidget", "Checking and extracting libraries");
+					if (!RootTools.exists("/data/data/com.mridang.hangouts/files/libncurses.so")) {
+
+						RootTools.installBinary(getApplicationContext(), R.raw.libncurses, "libncurses.so", "644");
+						Log.d("HangoutsWidget", "Installed libncurses");
+
+					}
+
+					Log.d("HangoutsWidget", "Checking and extracting binaries");
+					if (!RootTools.exists("/data/data/com.mridang.hangouts/files/sqlite3")) {
+
+						RootTools.installBinary(getApplicationContext(), R.raw.libncurses, "sqlite3", "644");
+						Log.d("HangoutsWidget", "Installed sqlite3");
+
+					}
+
+				} catch (Exception e) {
+					Log.e("HangoutsWidget", "Error extracting libraries and binairies", e);
 					return;
 				}
 
@@ -80,7 +103,7 @@ public class HangoutsWidget extends DashClockExtension {
 
 				Log.w("HangoutsWidget", "The device is not rooted or root access was denied");
 				Toast.makeText(getApplicationContext(), R.string.unrooted_error, Toast.LENGTH_LONG).show();
-				
+
 			}
 
 		}
@@ -190,8 +213,6 @@ public class HangoutsWidget extends DashClockExtension {
 
 						};
 						RootTools.getShell(true).add(cmdInstalled).waitForFinish();
-
-						RootTools.installBinary(getApplicationContext(), R.raw.sqlite3, "sqlite3", "755");
 
 						Command cmdPackaged = new Command(1, "/data/data/com.mridang.hangouts/files/sqlite3 -version") {
 
