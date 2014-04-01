@@ -98,7 +98,7 @@ public class HangoutsWidget extends DashClockExtension {
 			for (String strDatabase : Arrays.asList(DATABASE_NAMES)) {
 
 				File filApplication = new File("/data/data/" + PACKAGE_NAME + "/databases/" +  strDatabase);
-				if (!filApplication.canRead() || !filApplication.canExecute()) {
+				if (filApplication.exists() && (!filApplication.canRead() || !filApplication.canExecute())) {
 
 					Log.w("HangoutsWidget", "Unable to access destination database");
 
@@ -120,7 +120,7 @@ public class HangoutsWidget extends DashClockExtension {
 
 							@Override
 							public void commandOutput(int arg0, String arg1) {
-								BugSenseHandler.addCrashExtraData(strContents, arg1);
+								BugSenseHandler.addCrashExtraData(String.valueOf(arg0), arg1);
 								Log.v("HangoutsWidget", arg1);
 							}
 
@@ -156,7 +156,7 @@ public class HangoutsWidget extends DashClockExtension {
 
 							@Override
 							public void commandOutput(int arg0, String arg1) {
-								BugSenseHandler.addCrashExtraData(strDatabases, arg1);
+								BugSenseHandler.addCrashExtraData(String.valueOf(arg0), arg1);
 								Log.v("HangoutsWidget", arg1);
 							}
 
@@ -192,7 +192,7 @@ public class HangoutsWidget extends DashClockExtension {
 
 							@Override
 							public void commandOutput(int arg0, String arg1) {
-								BugSenseHandler.addCrashExtraData(strApplication, arg1);
+								BugSenseHandler.addCrashExtraData(String.valueOf(arg0), arg1);
 								Log.v("HangoutsWidget", arg1);
 							}
 
