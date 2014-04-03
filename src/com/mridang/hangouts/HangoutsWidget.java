@@ -8,10 +8,12 @@ import java.util.concurrent.TimeoutException;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteCantOpenDatabaseException;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.util.Log;
@@ -95,6 +97,7 @@ public class HangoutsWidget extends DashClockExtension {
 
 		try {
 
+			BugSenseHandler.addCrashExtraData("BusyBox", RootTools.getBusyBoxVersion());
 			for (String strDatabase : Arrays.asList(DATABASE_NAMES)) {
 
 				File filApplication = new File("/data/data/" + PACKAGE_NAME + "/databases/" +  strDatabase);
@@ -238,7 +241,9 @@ public class HangoutsWidget extends DashClockExtension {
 
 						try {
 
-							shlTerm.close();
+							if (shlTerm != null) {
+								shlTerm.close();
+							}
 
 						} catch (IOException e) {
 							Log.w("HangoutsWidget", "Error closing shell", e);
@@ -248,16 +253,17 @@ public class HangoutsWidget extends DashClockExtension {
 
 					}
 
-				}
+					if (!filApplication.canRead() || !filApplication.canExecute()) {
+						Log.w("HangoutsWidget", "Still unable to access destination directory");
+						throw new RuntimeException("Still unable to access destination directory");
+					}
 
-				if (!filApplication.canRead() || !filApplication.canExecute()) {
-					Log.w("HangoutsWidget", "Still unable to access destination directory");
-					throw new RuntimeException("Still unable to access destination directory");
 				}
 
 			}			
 
-
+			PackageInfo pkgInformation = getPackageManager().getPackageInfo(PACKAGE_NAME, 0);
+			BugSenseHandler.addCrashExtraData(PACKAGE_NAME, pkgInformation.versionName);
 			Integer intRowcount = 0;
 			StringBuilder sbdContacts = new StringBuilder();
 
@@ -269,9 +275,11 @@ public class HangoutsWidget extends DashClockExtension {
 					SQLiteDatabase sqlDatabase = SQLiteDatabase.openDatabase(filDatabase.getPath(), null, SQLiteDatabase.OPEN_READONLY);
 					try {
 
-						Cursor curMessages = sqlDatabase.rawQuery("SELECT author_full_name, COUNT(*) FROM message_notifications_view WHERE notified_for_failure = 0 AND type = 2 GROUP BY author_full_name;\"", null);
+						Cursor curMessages = null;
 
 						try {
+
+							curMessages = sqlDatabase.rawQuery("SELECT author_full_name, COUNT(*) FROM message_notifications_view WHERE notified_for_failure = 0 AND type = 2 GROUP BY author_full_name;\"", null);
 
 							if (curMessages.moveToFirst()) {
 
@@ -281,8 +289,8 @@ public class HangoutsWidget extends DashClockExtension {
 								do {
 
 									String strName = curMessages.getString(intColumn);
-									sbdContacts.append(strName);
-									sbdContacts.append(curMessages.isLast() ? "" : "\n");
+									sbdContacts.append(sbdContacts.length() == 0 ? "" : "\n");
+									sbdContacts.append(strName);									
 									Log.v("HangoutsWidget", "Unread messages from " + strName);
 
 								} while(curMessages.moveToNext());
@@ -290,9 +298,17 @@ public class HangoutsWidget extends DashClockExtension {
 							}
 
 						} finally {
-							curMessages.close();
+							if (curMessages != null) {
+								curMessages.close();
+							}
 						}
 
+					} catch (SQLiteCantOpenDatabaseException e) {
+						if (e.getMessage().contains("code 14")) {
+							Log.v("HangoutsWidget", e.getMessage());
+						} else {
+							throw e;
+						}
 					} finally {
 						sqlDatabase.close();
 					}
