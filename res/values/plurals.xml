@@ -2,8 +2,8 @@
 <resources>
 
     <plurals name="message">
-        <item quantity="one">%1$d new message</item>
-        <item quantity="other">%1$d new messages</item>
+        <item quantity="one">%1$d unread chat on %2$s</item>
+        <item quantity="other">%1$d unread chats on %2$s</item>
     </plurals>
     
 </resources>

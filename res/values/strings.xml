@@ -1,9 +1,15 @@
 <resources>
 
-    <string name="unrooted_error">The Hangouts extension for Dashclock requires a rooted device and root access to work. Uninstall the extension, or, root your device and grant root access permanently.</string>
-    <string name="extension_name">Hangouts</string>
-    <string name="application_name">Dashclock Hangouts Extension</string>
-    <string name="extension_info">Displays information about your unread Hangouts messages.</string>
-    <string name="database_missing">The Hangouts extension for Dashclock was unable to find any message databases. Contact the developer in order to resolve this issue.</string>
+    <string name="unrooted_error">The Chatter extension for Dashclock requires a rooted device and root access to work. Uninstall the extension, or, root your device and grant root access permanently.</string>
+    <string name="extension_name">Chatter</string>
+    <string name="application_name">Dashclock Chatter Extension</string>
+    <string name="extension_info">Displays information about your unread messages from multiple apps.</string>
+    <string name="database_missing">The Chatter extension for Dashclock was unable to find any message databases. Contact the developer in order to resolve this issue.</string>
+    <string name="whatsapp_name">WhatsApp</string>
+    <string name="whatsapp_info">Displays information about your unread WhatsApp conversations</string>
+    <string name="hangouts_name">Hangouts</string>
+    <string name="hangouts_info">Displays information about your unread Hangouts conversations</string>
+    <string name="facebook_name">Facebook</string>
+    <string name="facebook_info">Displays information about your unread Facebook conversations</string>
 
 </resources>

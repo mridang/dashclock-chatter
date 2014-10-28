@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * This class is the main class that provides the widget
  */
-public class HangoutsWidget extends MessageExtension {
+public class FacebookWidget extends MessageExtension {
 
 	/*
 	 * (non-Javadoc)
@@ -24,7 +24,7 @@ public class HangoutsWidget extends MessageExtension {
 	 */
 	@Override
 	protected String getName() {
-		return "Hangouts";
+		return "Facebook";
 	}
 
 	/*
@@ -33,7 +33,7 @@ public class HangoutsWidget extends MessageExtension {
 	 */
 	@Override
 	protected String getPackage() {
-		return "com.google.android.talk";
+		return "com.facebook.orca";
 	}
 
 	/*
@@ -42,7 +42,7 @@ public class HangoutsWidget extends MessageExtension {
 	 */
 	@Override
 	protected List<String> getDb() {
-		return Arrays.asList("babel0.db", "babel1.db", "babel2.db", "babel3.db");
+		return Arrays.asList("threads_db2");
 	}
 
 	/*
@@ -51,7 +51,7 @@ public class HangoutsWidget extends MessageExtension {
 	 */
 	@Override
 	protected Integer getIcon() {
-		return R.drawable.ic_hangouts;
+		return R.drawable.ic_facebook;
 	}
 
 	/*
@@ -60,11 +60,14 @@ public class HangoutsWidget extends MessageExtension {
 	 */
 	@Override
 	protected String getQuery() {
-		return "SELECT IFNULL(name, generated_name) AS conversation_name"
-             + "  FROM conversations"
-             + " WHERE self_watermark < latest_message_timestamp"
-             + " ORDER"
-             + "    BY sort_timestamp DESC;";
+		return "SELECT IFNULL(tu.name, th.name) AS name"
+			 + "  FROM threads th"
+			 + "  LEFT"
+			 + " OUTER"
+			 + "  JOIN thread_users tu"
+			 + "    ON REPLACE(th.thread_key, 'ONE_TO_ONE:', 'FACEBOOK:')"
+			 + "       LIKE (tu.user_key || '%')"
+			 + " WHERE th.unread = 1;";
 	}
 
 }

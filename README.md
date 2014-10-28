@@ -1,4 +1,4 @@
-dashclock-hangouts
+dashclock-messages
 ==================
 
-A Dashclock plugin that displays information about your new Hangouts messages
+A Dashclock plugin that displays information about your unread messages
