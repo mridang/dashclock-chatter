@@ -1,12 +1,13 @@
 package com.mridang.hangouts;
 
+import android.app.Application;
+import android.content.Context;
+
 import org.acra.ReportField;
 import org.acra.annotation.ReportsCrashes;
 import org.acra.sender.HttpSender;
 
-import android.app.Application;
-import android.content.Context;
-
+@SuppressWarnings("ALL")
 @ReportsCrashes(
 	    formUri = "https://mridang.cloudant.com/acra-dashclock/_design/acra-storage/_update/report",
 	    reportType = HttpSender.Type.JSON,
